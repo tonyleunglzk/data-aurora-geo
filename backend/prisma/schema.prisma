@@ -1,0 +1,1164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ENABLED
+  DISABLED
+}
+
+enum GeoSerpProjectStatus {
+  SUCCEEDED
+  BLOCKED
+  FAILED
+}
+
+enum GeoSerpResultStatus {
+  ANALYZED
+  FETCH_FAILED
+}
+
+enum GeoPromptBatchEngineType {
+  LEGACY
+  V2
+}
+
+enum GeoPromptBatchJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  PARTIAL_FAILED
+  FAILED
+}
+
+enum GeoPromptBatchItemStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum GeoPromptV3VariablePickMode {
+  ONE
+  MANY
+}
+
+enum GeoPromptV3RunMode {
+  SINGLE
+  BATCH
+}
+
+enum GeoPromptV3RunStatus {
+  RUNNING
+  COMPLETED
+  PARTIAL_FAILED
+  FAILED
+}
+
+enum GeoPromptV3FixedRulesMode {
+  SYSTEM
+  NONE
+}
+
+enum GeoPromptV3ItemStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum GeoPublicationCrawlJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  PARTIAL_FAILED
+  FAILED
+}
+
+enum GeoPublicationCrawlResultStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  NO_AI
+  BLOCKED
+  FAILED
+}
+
+enum VideoGenerationTemplateType {
+  CAT_TALK
+  HUMAN_TALK
+  PRODUCT_SHOWCASE
+  KNOWLEDGE_EXPLAINER
+  SEEDING_RECOMMENDATION
+  COMPARISON_REVIEW
+  CUSTOM
+}
+
+enum VideoGenerationSourceType {
+  MANUAL
+  GEO_V3_PRODUCT
+  GEO_V3_RUN
+  GEO_V3_ITEM
+}
+
+enum VideoGenerationCampaignStatus {
+  DRAFT
+  RUNNING
+  COMPLETED
+  PARTIAL_FAILED
+  FAILED
+}
+
+enum VideoGenerationTaskStatus {
+  CREATED
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum VideoGenerationAssetKind {
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+enum VideoGenerationAssetStatus {
+  PLANNED
+  GENERATING
+  READY
+  FAILED
+}
+
+enum VideoGenerationAssetSourceType {
+  PLANNED
+  UPLOADED
+  GENERATED
+  TRANSFERRED
+  REMOTE
+}
+
+enum VideoGenerationAssetPriority {
+  REQUIRED
+  RECOMMENDED
+  OPTIONAL
+}
+
+enum VideoGenerationTransferStatus {
+  NOT_STARTED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  name         String
+  username     String     @unique
+  passwordHash String     @default("")
+  role         String
+  phone        String
+  status       UserStatus @default(ENABLED)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model AppSetting {
+  id                   Int      @id @default(1)
+  systemName           String
+  notificationsEnabled Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model GeoProviderConfig {
+  id        Int      @id @default(1)
+  apiKey    String   @default("")
+  baseUrl   String   @default("")
+  model     String   @default("claude-opus-4-6-20250219")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GeoPromptEngineV2FixedRules {
+  id        Int      @id @default(1)
+  ruleText  String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GeoPromptEngineV3FixedRules {
+  id        Int      @id @default(1)
+  ruleText  String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GeoPromptEngineVersion {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String   @default("")
+  articleUrl  String   @default("") @db.VarChar(2048)
+  articleText String   @db.LongText
+  ruleText    String   @db.Text
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder, updatedAt])
+}
+
+model GeoPromptEngineVersionDraftSession {
+  id                   Int      @id @default(autoincrement())
+  title                String
+  articleText          String   @db.LongText
+  articleUrl           String   @default("") @db.VarChar(2048)
+  notes                String   @db.Text
+  model                String   @default("")
+  messages             Json
+  status               String   @default("ACTIVE")
+  ownerUserId          Int?
+  ownerName            String   @default("")
+  suggestedName        String   @default("")
+  suggestedDescription String   @db.Text
+  suggestedRuleText    String   @db.Text
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([ownerUserId, updatedAt])
+}
+
+model GeoPromptEngineV3Version {
+  id                 Int                        @id @default(autoincrement())
+  name               String
+  description        String                     @db.Text
+  sourceArticleUrl   String                     @default("") @db.VarChar(2048)
+  sourceArticleText  String                     @db.LongText
+  sourceArticleTitle String                     @default("")
+  ruleText           String                     @db.Text
+  structureRules     String                     @db.Text
+  titleRules         String                     @db.Text
+  paragraphRules     String                     @db.Text
+  seoGeoRules        String                     @db.Text
+  forbiddenRules     String                     @db.Text
+  notes              String                     @db.Text
+  isActive           Boolean                    @default(true)
+  archivedAt         DateTime?
+  sortOrder          Int                        @default(0)
+  variableSets       GeoPromptVariableSet[]
+  generationRuns     GeoPromptV3GenerationRun[]
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  @@index([isActive, sortOrder, updatedAt])
+  @@index([archivedAt, isActive, sortOrder, updatedAt])
+}
+
+model GeoPromptV3VersionDraftSession {
+  id                        Int      @id @default(autoincrement())
+  title                     String
+  articleText               String   @db.LongText
+  articleUrl                String   @default("") @db.VarChar(2048)
+  notes                     String   @db.Text
+  model                     String   @default("")
+  messages                  Json
+  status                    String   @default("ACTIVE")
+  ownerUserId               Int?
+  ownerName                 String   @default("")
+  suggestedName             String   @default("")
+  suggestedDescription      String   @db.Text
+  suggestedRuleText         String   @db.Text
+  suggestedVariableSetDraft Json
+  sourceV2SessionId         Int?
+  sourceType                String   @default("MANUAL_CHAT")
+  sourceBatchTxtJobId       Int?
+  sourceBatchTxtJobItemId   Int?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([ownerUserId, updatedAt])
+  @@index([sourceV2SessionId])
+  @@index([sourceType, updatedAt])
+  @@index([sourceBatchTxtJobId])
+  @@index([sourceBatchTxtJobItemId])
+}
+
+model GeoPromptV3BatchTxtJob {
+  id              Int                          @id @default(autoincrement())
+  productCategory String                       @default("")
+  requirements    Json
+  model           String                       @default("")
+  status          String                       @default("QUEUED")
+  requestedCount  Int                          @default(0)
+  successCount    Int                          @default(0)
+  skippedCount    Int                          @default(0)
+  failedCount     Int                          @default(0)
+  runningCount    Int                          @default(0)
+  lastError       String                       @db.Text
+  ownerUserId     Int?
+  ownerName       String                       @default("")
+  completedAt     DateTime?
+  items           GeoPromptV3BatchTxtJobItem[]
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+
+  @@index([status, createdAt])
+  @@index([ownerUserId, createdAt])
+}
+
+model GeoPromptV3BatchTxtJobItem {
+  id             Int                    @id @default(autoincrement())
+  jobId          Int
+  itemIndex      Int
+  fileName       String
+  versionName    String
+  articleText    String                 @db.LongText
+  status         String                 @default("QUEUED")
+  errorMessage   String                 @db.Text
+  versionId      Int?
+  variableSetId  Int?
+  draftSessionId Int?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  job            GeoPromptV3BatchTxtJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@unique([jobId, itemIndex])
+  @@index([jobId, status])
+  @@index([versionName])
+  @@index([versionId])
+  @@index([variableSetId])
+  @@index([draftSessionId])
+}
+
+model GeoPromptVariableSet {
+  id             Int                        @id @default(autoincrement())
+  versionId      Int?
+  name           String
+  description    String                     @db.Text
+  isActive       Boolean                    @default(true)
+  sortOrder      Int                        @default(0)
+  version        GeoPromptEngineV3Version?  @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  items          GeoPromptVariableItem[]
+  generationRuns GeoPromptV3GenerationRun[]
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  @@index([isActive, sortOrder, updatedAt])
+  @@index([versionId, isActive, sortOrder])
+}
+
+model GeoPromptVariableItem {
+  id          Int                         @id @default(autoincrement())
+  setId       Int
+  name        String
+  label       String
+  description String                      @db.Text
+  pickMode    GeoPromptV3VariablePickMode @default(ONE)
+  pickMin     Int                         @default(1)
+  pickMax     Int                         @default(1)
+  candidates  Json
+  isActive    Boolean                     @default(true)
+  sortOrder   Int                         @default(0)
+  set         GeoPromptVariableSet        @relation(fields: [setId], references: [id], onDelete: Cascade)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+
+  @@index([setId, sortOrder])
+  @@index([isActive, sortOrder])
+}
+
+model GeoMainProductProfileV3 {
+  id                  Int                         @id @default(autoincrement())
+  name                String
+  brand               String
+  productName         String
+  category            String
+  targetAudience      String                      @default("")
+  coreParameters      String                      @db.Text
+  keyword             String                      @default("")
+  keywordMode         String                      @default("exact")
+  seoKeywords         Json?
+  brandPool           Json?
+  brandPoolPickMin    Int                         @default(0)
+  brandPoolPickMax    Int                         @default(0)
+  requiredContent     Json
+  randomContentPool   Json
+  randomPickMin       Int                         @default(0)
+  randomPickMax       Int                         @default(0)
+  sellingPointsPool   Json?
+  sellingPointPickMin Int                         @default(0)
+  sellingPointPickMax Int                         @default(0)
+  emphasisPool        Json?
+  emphasisPickMin     Int                         @default(0)
+  emphasisPickMax     Int                         @default(0)
+  isActive            Boolean                     @default(true)
+  sortOrder           Int                         @default(0)
+  generationRuns      GeoPromptV3GenerationRun[]
+  videoCampaigns      VideoGenerationCampaign[]
+  videoAssets         VideoGenerationAsset[]
+  videoStoryboards    VideoGenerationStoryboard[]
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+
+  @@index([isActive, sortOrder, updatedAt])
+  @@index([category, updatedAt])
+}
+
+model GeoPromptV3GenerationRun {
+  id                  Int                         @id @default(autoincrement())
+  mode                GeoPromptV3RunMode
+  fixedRulesMode      GeoPromptV3FixedRulesMode   @default(SYSTEM)
+  status              GeoPromptV3RunStatus        @default(RUNNING)
+  versionId           Int?
+  variableSetId       Int?
+  productProfileId    Int?
+  versionName         String
+  variableSetName     String
+  productProfileName  String
+  topic               String                      @default("")
+  extraRequirements   String                      @db.Text
+  articleUrl          String                      @default("") @db.VarChar(2048)
+  articleText         String?                     @db.LongText
+  versionSnapshot     Json
+  variableSetSnapshot Json
+  productSnapshot     Json
+  requestedCount      Int
+  successCount        Int                         @default(0)
+  failedCount         Int                         @default(0)
+  zipFileName         String                      @default("")
+  lastError           String                      @db.Text
+  completedAt         DateTime?
+  version             GeoPromptEngineV3Version?   @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  variableSet         GeoPromptVariableSet?       @relation(fields: [variableSetId], references: [id], onDelete: SetNull)
+  productProfile      GeoMainProductProfileV3?    @relation(fields: [productProfileId], references: [id], onDelete: SetNull)
+  items               GeoPromptV3GenerationItem[]
+  videoCampaigns      VideoGenerationCampaign[]
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+
+  @@index([status, createdAt])
+  @@index([mode, createdAt])
+  @@index([versionId, createdAt])
+  @@index([variableSetId, createdAt])
+  @@index([productProfileId, createdAt])
+}
+
+model GeoPromptV3GenerationItem {
+  id                     Int                       @id @default(autoincrement())
+  runId                  Int
+  itemIndex              Int
+  status                 GeoPromptV3ItemStatus     @default(QUEUED)
+  fileName               String                    @default("")
+  promptText             String                    @db.LongText
+  selectedVariables      Json
+  selectedProductContent Json
+  errorMessage           String                    @db.Text
+  run                    GeoPromptV3GenerationRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  videoCampaigns         VideoGenerationCampaign[]
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+
+  @@unique([runId, itemIndex])
+  @@index([runId, itemIndex])
+  @@index([status, updatedAt])
+}
+
+model VideoGenerationTemplate {
+  id             Int                         @id @default(autoincrement())
+  key            String                      @unique
+  name           String
+  type           VideoGenerationTemplateType @default(CUSTOM)
+  description    String                      @db.Text
+  model          String
+  resolution     String
+  ratio          String
+  duration       Int
+  generateAudio  Boolean                     @default(true)
+  watermark      Boolean                     @default(false)
+  promptTemplate String                      @db.LongText
+  isActive       Boolean                     @default(true)
+  sortOrder      Int                         @default(0)
+  campaigns      VideoGenerationCampaign[]
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  @@index([isActive, sortOrder, updatedAt])
+}
+
+model VideoGenerationCampaign {
+  id               Int                           @id @default(autoincrement())
+  name             String
+  sourceType       VideoGenerationSourceType
+  status           VideoGenerationCampaignStatus @default(DRAFT)
+  templateId       Int?
+  templateName     String                        @default("")
+  productProfileId Int?
+  geoRunId         Int?
+  geoItemId        Int?
+  topicText        String                        @db.Text
+  productSnapshot  Json?
+  sourceSnapshot   Json?
+  requestedCount   Int                           @default(0)
+  successCount     Int                           @default(0)
+  failedCount      Int                           @default(0)
+  runningCount     Int                           @default(0)
+  queuedCount      Int                           @default(0)
+  lastError        String                        @db.Text
+  completedAt      DateTime?
+  template         VideoGenerationTemplate?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  productProfile   GeoMainProductProfileV3?      @relation(fields: [productProfileId], references: [id], onDelete: SetNull)
+  geoRun           GeoPromptV3GenerationRun?     @relation(fields: [geoRunId], references: [id], onDelete: SetNull)
+  geoItem          GeoPromptV3GenerationItem?    @relation(fields: [geoItemId], references: [id], onDelete: SetNull)
+  tasks            VideoGenerationTask[]
+  assets           VideoGenerationAsset[]
+  storyboards      VideoGenerationStoryboard[]
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+
+  @@index([status, createdAt])
+  @@index([sourceType, createdAt])
+  @@index([templateId, createdAt])
+  @@index([productProfileId, createdAt])
+  @@index([geoRunId, createdAt])
+  @@index([geoItemId, createdAt])
+}
+
+model VideoGenerationTask {
+  id                    Int                           @id @default(autoincrement())
+  campaignId            Int?
+  providerTaskId        String                        @unique
+  status                VideoGenerationTaskStatus     @default(CREATED)
+  model                 String
+  resolution            String
+  ratio                 String
+  duration              Int
+  generateAudio         Boolean                       @default(true)
+  watermark             Boolean                       @default(false)
+  cameraFixed           Boolean?
+  returnLastFrame       Boolean                       @default(false)
+  callbackUrl           String                        @default("") @db.VarChar(4096)
+  promptText            String                        @db.LongText
+  content               Json
+  referenceAssets       Json?
+  productSnapshot       Json?
+  sourceSnapshot        Json?
+  videoUrl              String                        @default("") @db.VarChar(4096)
+  videoUrlExpiresAt     DateTime?
+  lastFrameUrl          String                        @default("") @db.VarChar(4096)
+  transferredVideoUrl   String?                       @db.Text
+  localVideoPath        String?                       @db.Text
+  transferStatus        VideoGenerationTransferStatus @default(NOT_STARTED)
+  transferError         String?                       @db.Text
+  transferredAt         DateTime?
+  usage                 Json?
+  seed                  Int?
+  framesPerSecond       Int?
+  serviceTier           String                        @default("")
+  executionExpiresAfter Int?
+  errorCode             String                        @default("")
+  errorMessage          String                        @db.Text
+  arkResponse           Json?
+  completedAt           DateTime?
+  campaign              VideoGenerationCampaign?      @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  assets                VideoGenerationAsset[]
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
+
+  @@index([campaignId, status])
+  @@index([status, updatedAt])
+  @@index([model, createdAt])
+  @@index([transferStatus, updatedAt])
+}
+
+model VideoGenerationAsset {
+  id               Int                            @id @default(autoincrement())
+  productProfileId Int?
+  campaignId       Int?
+  taskId           Int?
+  planKey          String                         @default("")
+  title            String
+  kind             VideoGenerationAssetKind
+  role             String                         @default("")
+  priority         VideoGenerationAssetPriority   @default(RECOMMENDED)
+  status           VideoGenerationAssetStatus     @default(PLANNED)
+  sourceType       VideoGenerationAssetSourceType @default(PLANNED)
+  stage            String                         @default("")
+  purpose          String                         @db.Text
+  brief            String                         @db.LongText
+  prompt           String                         @db.LongText
+  toolHint         String                         @default("")
+  sourceFields     Json?
+  url              String?                        @db.Text
+  localPath        String?                        @db.Text
+  provider         String                         @default("")
+  providerTaskId   String                         @default("")
+  model            String                         @default("")
+  errorMessage     String                         @db.Text
+  productSnapshot  Json?
+  metadata         Json?
+  productProfile   GeoMainProductProfileV3?       @relation(fields: [productProfileId], references: [id], onDelete: SetNull)
+  campaign         VideoGenerationCampaign?       @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  task             VideoGenerationTask?           @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  createdAt        DateTime                       @default(now())
+  updatedAt        DateTime                       @updatedAt
+
+  @@index([productProfileId, status, updatedAt])
+  @@index([campaignId, status, updatedAt])
+  @@index([taskId, sourceType])
+  @@index([kind, status, updatedAt])
+  @@index([planKey])
+}
+
+model VideoGenerationStoryboard {
+  id               Int                        @id @default(autoincrement())
+  productProfileId Int?
+  campaignId       Int?
+  sourceType       VideoGenerationSourceType?
+  title            String
+  topicText        String                     @db.Text
+  scriptText       String                     @db.LongText
+  scenes           Json
+  productSnapshot  Json?
+  sourceSnapshot   Json?
+  productProfile   GeoMainProductProfileV3?   @relation(fields: [productProfileId], references: [id], onDelete: SetNull)
+  campaign         VideoGenerationCampaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  @@index([productProfileId, createdAt])
+  @@index([campaignId, createdAt])
+  @@index([sourceType, createdAt])
+}
+
+model VideoMaterial {
+  id                  Int                 @id @default(autoincrement())
+  productCategory     String
+  originalName        String
+  sourceFileName      String              @unique
+  sourcePath          String              @db.Text
+  mimeType            String              @default("")
+  fileSizeBytes       String              @default("0")
+  durationMs          Int                 @default(0)
+  width               Int                 @default(0)
+  height              Int                 @default(0)
+  fps                 Float               @default(0)
+  videoCodec          String              @default("")
+  audioCodec          String              @default("")
+  hasAudio            Boolean             @default(false)
+  status              String              @default("QUEUED")
+  progress            Int                 @default(0)
+  stage               String              @default("等待处理")
+  errorMessage        String              @db.Text
+  sceneThreshold      Float               @default(0.3)
+  minClipDurationMs   Int                 @default(4000)
+  maxClipDurationMs   Int                 @default(15000)
+  clipCount           Int                 @default(0)
+  aiStatus            String              @default("NOT_STARTED")
+  aiProgress          Int                 @default(0)
+  aiStage             String              @default("")
+  aiErrorMessage      String              @default("") @db.VarChar(2000)
+  aiModel             String              @default("")
+  aiInputTokens       Int                 @default(0)
+  aiOutputTokens      Int                 @default(0)
+  aiAudioSeconds      Float               @default(0)
+  aiStartedAt         DateTime?
+  aiCompletedAt       DateTime?
+  metadata            Json
+  processingStartedAt DateTime?
+  completedAt         DateTime?
+  clips               VideoMaterialClip[]
+  transcriptSegments  VideoMaterialTranscriptSegment[]
+  assemblyProjectSources VideoAssemblyProjectMaterial[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([productCategory, status, createdAt])
+  @@index([status, createdAt])
+  @@index([aiStatus, createdAt])
+}
+
+model VideoMaterialClip {
+  id               Int           @id @default(autoincrement())
+  materialId       Int
+  clipIndex        Int
+  startMs          Int
+  endMs            Int
+  durationMs       Int
+  clipFileName     String
+  keyframeFileName String
+  shotType         String        @default("UNCLASSIFIED")
+  contentType      String        @default("UNCLASSIFIED")
+  contentTopics    Json?
+  description      String        @db.Text
+  tags             Json
+  actions          Json?
+  objects          Json?
+  scenes           Json?
+  brands           Json?
+  qualityFlags     Json?
+  qualityScore     Float?
+  usabilityScore   Float?
+  hasPerson        Boolean       @default(false)
+  hasTextOverlay   Boolean       @default(false)
+  transcript       String?       @db.Text
+  transcriptContext String       @default("") @db.Text
+  speechBoundaryStatus String    @default("UNKNOWN")
+  motionScore       Float?
+  confidence       Float?
+  aiModel          String        @default("")
+  analyzedAt       DateTime?
+  reviewStatus     String        @default("PENDING")
+  material         VideoMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  assemblyScenes   VideoAssemblyScene[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([materialId, clipIndex])
+  @@index([materialId, startMs])
+  @@index([shotType, reviewStatus])
+  @@index([contentType, reviewStatus])
+}
+
+model VideoMaterialTranscriptSegment {
+  id          Int           @id @default(autoincrement())
+  materialId  Int
+  segmentIndex Int
+  startMs     Int
+  endMs       Int
+  text        String        @db.Text
+  words       Json?
+  model       String        @default("")
+  chunkIndex  Int           @default(0)
+  material    VideoMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([materialId, segmentIndex])
+  @@index([materialId, startMs])
+}
+
+model VideoAssemblyProject {
+  id                       Int                  @id @default(autoincrement())
+  productCategory          String
+  name                     String
+  narrationText            String               @db.LongText
+  status                   String               @default("DRAFT")
+  progress                 Int                  @default(0)
+  stage                    String               @default("等待规划")
+  errorMessage             String               @default("") @db.Text
+  aspectRatio              String               @default("9:16")
+  removeSourceSubtitles    Boolean              @default(true)
+  sourceMode               String               @default("ALL")
+  framingMode              String               @default("FILL_CROP")
+  narrationAudioFileName   String               @default("")
+  narrationAudioPath       String               @default("") @db.Text
+  outputFileName           String               @default("")
+  outputPath               String               @default("") @db.Text
+  durationMs               Int                  @default(0)
+  aiModel                  String               @default("")
+  aiInputTokens            Int                  @default(0)
+  aiOutputTokens           Int                  @default(0)
+  metadata                 Json?
+  scenes                   VideoAssemblyScene[]
+  sourceMaterials          VideoAssemblyProjectMaterial[]
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  completedAt              DateTime?
+
+  @@index([productCategory, createdAt])
+  @@index([status, createdAt])
+}
+
+model VideoAssemblyProjectMaterial {
+  projectId  Int
+  materialId Int
+  project    VideoAssemblyProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  material   VideoMaterial        @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  createdAt  DateTime             @default(now())
+
+  @@id([projectId, materialId])
+  @@index([materialId])
+}
+
+model VideoAssemblyScene {
+  id                  Int                   @id @default(autoincrement())
+  projectId           Int
+  sceneIndex          Int
+  narrationText       String                @db.Text
+  targetDurationMs    Int                   @default(5000)
+  visualBrief         String                @db.Text
+  visualIntent        String                @default("MIXED")
+  contentTypes        Json
+  shotTypes           Json
+  keywords            Json
+  negativeKeywords    Json
+  selectedClipId      Int?
+  clipStartOffsetMs   Int                   @default(0)
+  clipDurationMs      Int                   @default(0)
+  matchScore          Float?
+  matchReason         String                @default("") @db.Text
+  candidates          Json?
+  status              String                @default("PENDING")
+  project             VideoAssemblyProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  selectedClip        VideoMaterialClip?    @relation(fields: [selectedClipId], references: [id], onDelete: SetNull)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@unique([projectId, sceneIndex])
+  @@index([projectId, sceneIndex])
+  @@index([selectedClipId])
+}
+
+model GeoProductProfile {
+  id                 Int                    @id @default(autoincrement())
+  profileName        String                 @unique
+  brand              String
+  productName        String
+  type               String
+  specs              String
+  targetAudience     String
+  keyword            String
+  keywordMode        String                 @default("exact")
+  sellingPoints      Json
+  sellingPointsRange String
+  emphasis           Json
+  emphasisRange      String
+  seoKeywords        Json
+  brandPool          Json
+  brandPoolCount     String
+  articleUrl         String                 @default("") @db.VarChar(2048)
+  promptBatchCounter GeoPromptBatchCounter?
+  promptBatchJobs    GeoPromptBatchJob[]
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+}
+
+model GeoPromptBatchCounter {
+  id           Int               @id @default(autoincrement())
+  profileId    Int               @unique
+  lastSequence Int               @default(0)
+  profile      GeoProductProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model GeoPromptBatchJob {
+  id                 Int                      @id @default(autoincrement())
+  engineType         GeoPromptBatchEngineType
+  profileId          Int
+  profileName        String
+  versionId          Int?
+  versionName        String                   @default("")
+  versionDescription String                   @db.Text
+  versionRuleText    String                   @db.Text
+  fixedRulesText     String                   @db.Text
+  articleUrl         String                   @default("") @db.VarChar(2048)
+  articleText        String                   @db.LongText
+  productSnapshot    Json
+  ruleCardSnapshot   Json?
+  requestedCount     Int
+  successCount       Int                      @default(0)
+  failedCount        Int                      @default(0)
+  queuedCount        Int                      @default(0)
+  runningCount       Int                      @default(0)
+  dateCode           String
+  sequenceStart      Int?
+  sequenceEnd        Int?
+  zipFileName        String                   @default("")
+  status             GeoPromptBatchJobStatus  @default(QUEUED)
+  lastError          String                   @db.Text
+  completedAt        DateTime?
+  profile            GeoProductProfile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  items              GeoPromptBatchJobItem[]
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([profileId, createdAt])
+  @@index([engineType, createdAt])
+}
+
+model GeoPromptBatchJobItem {
+  id                 Int                      @id @default(autoincrement())
+  jobId              Int
+  itemIndex          Int
+  status             GeoPromptBatchItemStatus @default(QUEUED)
+  sequence           Int?
+  fileName           String                   @default("")
+  promptText         String                   @db.LongText
+  rawOutput          String                   @db.LongText
+  errorMessage       String                   @db.Text
+  startedAt          DateTime?
+  completedAt        DateTime?
+  job                GeoPromptBatchJob        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  publicationRecords GeoPublicationRecord[]
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  @@unique([jobId, itemIndex])
+  @@index([jobId, itemIndex])
+  @@index([status, updatedAt])
+}
+
+model GeoPublicationOption {
+  id        Int      @id @default(autoincrement())
+  type      String
+  label     String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([type, label])
+  @@index([type, sortOrder])
+}
+
+model GeoPublicationRecord {
+  id                   Int                           @id @default(autoincrement())
+  publishedAt          DateTime
+  product              String
+  title                String
+  platform             String
+  accountType          String
+  author               String
+  promptCode           String
+  link                 String                        @db.VarChar(2048)
+  promptBatchJobItemId Int?
+  promptBatchJobItem   GeoPromptBatchJobItem?        @relation(fields: [promptBatchJobItemId], references: [id], onDelete: SetNull)
+  crawlCitations       GeoPublicationCrawlCitation[]
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+
+  @@index([publishedAt, createdAt])
+  @@index([product, publishedAt])
+  @@index([platform, publishedAt])
+  @@index([accountType, publishedAt])
+  @@index([promptCode])
+  @@index([promptBatchJobItemId])
+}
+
+model GeoPublicationCrawlSetting {
+  id                    Int      @id @default(1)
+  isEnabled             Boolean  @default(false)
+  dailyRunTime          String   @default("08:00")
+  lookbackDays          Int      @default(90)
+  maxKeywordsPerRun     Int      @default(30)
+  requestIntervalMinSec Int      @default(3)
+  requestIntervalMaxSec Int      @default(8)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model GeoPublicationCrawlKeyword {
+  id        Int      @id @default(autoincrement())
+  product   String
+  keyword   String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([product, keyword])
+  @@index([isActive, product, sortOrder])
+}
+
+model GeoPublicationCrawlJob {
+  id                   Int                          @id @default(autoincrement())
+  triggerType          String
+  scheduleDate         String                       @default("")
+  product              String                       @default("")
+  status               GeoPublicationCrawlJobStatus @default(QUEUED)
+  keywordCount         Int                          @default(0)
+  successCount         Int                          @default(0)
+  noAiCount            Int                          @default(0)
+  blockedCount         Int                          @default(0)
+  failedCount          Int                          @default(0)
+  runningCount         Int                          @default(0)
+  queuedCount          Int                          @default(0)
+  matchedCitationCount Int                          @default(0)
+  lastError            String                       @db.Text
+  startedAt            DateTime?
+  completedAt          DateTime?
+  results              GeoPublicationCrawlResult[]
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([triggerType, scheduleDate])
+  @@index([product, createdAt])
+}
+
+model GeoPublicationCrawlResult {
+  id                   Int                             @id @default(autoincrement())
+  jobId                Int
+  product              String
+  keyword              String
+  status               GeoPublicationCrawlResultStatus @default(QUEUED)
+  aiTitle              String                          @default("")
+  contentSummary       String                          @db.Text
+  rawContent           String                          @db.LongText
+  citationCount        Int                             @default(0)
+  matchedCitationCount Int                             @default(0)
+  blockedDetected      Boolean                         @default(false)
+  errorMessage         String                          @db.Text
+  startedAt            DateTime?
+  completedAt          DateTime?
+  job                  GeoPublicationCrawlJob          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  citations            GeoPublicationCrawlCitation[]
+  createdAt            DateTime                        @default(now())
+  updatedAt            DateTime                        @updatedAt
+
+  @@unique([jobId, keyword])
+  @@index([status, updatedAt])
+  @@index([product, keyword])
+}
+
+model GeoPublicationCrawlCitation {
+  id                  Int                       @id @default(autoincrement())
+  resultId            Int
+  publicationRecordId Int?
+  url                 String                    @db.VarChar(2048)
+  normalizedUrl       String                    @db.VarChar(2048)
+  externalId          String                    @default("")
+  title               String                    @default("")
+  sourceName          String                    @default("")
+  authorName          String                    @default("")
+  brand               String                    @default("")
+  publishTime         String                    @default("")
+  isMatched           Boolean                   @default(false)
+  result              GeoPublicationCrawlResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  publicationRecord   GeoPublicationRecord?     @relation(fields: [publicationRecordId], references: [id], onDelete: SetNull)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  @@index([resultId])
+  @@index([publicationRecordId, createdAt])
+  @@index([externalId])
+  @@index([isMatched, createdAt])
+}
+
+model GeoSerpResearchProject {
+  id                   Int                     @id @default(autoincrement())
+  category             String                  @default("未分类")
+  keyword              String
+  rankLimit            Int
+  engine               String                  @default("baidu")
+  domainFilter         String                  @default("baijiahao.baidu.com")
+  status               GeoSerpProjectStatus
+  statusMessage        String                  @default("")
+  inspectedCount       Int                     @default(0)
+  matchedCount         Int                     @default(0)
+  baiduBlockedDetected Boolean                 @default(false)
+  results              GeoSerpResearchResult[]
+  aiSummary            GeoSerpAiSummary?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  @@index([category, updatedAt])
+}
+
+model GeoSerpResearchResult {
+  id              Int                    @id @default(autoincrement())
+  projectId       Int
+  rank            Int
+  title           String
+  snippet         String                 @default("")
+  searchUrl       String                 @db.Text
+  finalUrl        String                 @db.Text
+  domain          String
+  fetchStatus     GeoSerpResultStatus
+  fetchMessage    String                 @default("")
+  contentLength   Int                    @default(0)
+  paragraphCount  Int                    @default(0)
+  titleLength     Int                    @default(0)
+  keywordHits     Json
+  patternTags     Json
+  headingOutline  Json
+  analysisSummary Json
+  articleExcerpt  String                 @db.Text
+  publishAt       String                 @default("")
+  author          String                 @default("")
+  project         GeoSerpResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([projectId, rank])
+}
+
+model GeoSerpAiSummary {
+  id                Int                    @id @default(autoincrement())
+  projectId         Int                    @unique
+  category          String
+  model             String
+  rawSummary        String                 @db.Text
+  titlePatterns     Json
+  leadPatterns      Json
+  sectionBlueprint  Json
+  keywordPlacement  Json
+  sellingPointOrder Json
+  trustSignals      Json
+  endingPatterns    Json
+  antiPatterns      Json
+  rankingHypotheses Json
+  project           GeoSerpResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@index([category, updatedAt])
+}
+
+model GeoRuleCard {
+  id                 Int       @id @default(autoincrement())
+  category           String
+  model              String
+  rawSummary         String    @db.Text
+  titlePatterns      Json
+  leadPatterns       Json
+  sectionBlueprint   Json
+  keywordPlacement   Json
+  sellingPointOrder  Json
+  trustSignals       Json
+  endingPatterns     Json
+  antiPatterns       Json
+  rankingHypotheses  Json
+  sourceSummaryCount Int       @default(0)
+  sourceSummaryIds   Json
+  sourceTimeStart    DateTime?
+  sourceTimeEnd      DateTime?
+  isActive           Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([category, isActive])
+  @@index([category, updatedAt])
+}
+
+model ChangelogEntry {
+  id              Int      @id @default(autoincrement())
+  title           String
+  batchNo         String   @unique
+  releaseDate     DateTime
+  summary         String   @db.Text
+  addedItems      Json
+  changedItems    Json
+  removedItems    Json
+  affectedModules Json
+  sourceType      String   @default("manual")
+  publishedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([releaseDate, createdAt])
+  @@index([publishedAt, createdAt])
+}
